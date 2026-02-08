@@ -1,0 +1,112 @@
+{
+  "info": {
+    "name": "Node-Assigned Task System",
+    "description": "Main Server APIs - Auth + Tasks",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "node_token", "value": "" },
+    { "key": "admin_token", "value": "" },
+    { "key": "task_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/admin/login",
+            "description": "Login as admin. Copy token to admin_token. Credentials: .env ADMIN_USERNAME, ADMIN_PASSWORD."
+          }
+        },
+        {
+          "name": "Node Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"node_id\": \"your-node-id\",\n  \"node_secret\": \"your-node-secret\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/node/login",
+            "description": "Login as node. Copy returned token to collection variable 'node_token' for task endpoints."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Create Task (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"task_type\": \"email_send\",\n  \"task_details\": { \"to\": \"user@example.com\", \"subject\": \"Hello\" },\n  \"assigned_node_id\": \"node-1\"\n}"
+            },
+            "url": "{{baseUrl}}/tasks",
+            "description": "Requires admin JWT. Returns task_id - save it to {{task_id}} for status/reassign."
+          }
+        },
+        {
+          "name": "Get Assigned Tasks (Node)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{node_token}}" }
+            ],
+            "url": "{{baseUrl}}/tasks/assigned",
+            "description": "Fetch and lock up to 5 pending tasks for the authenticated node."
+          }
+        },
+        {
+          "name": "Update Task Status (Node)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{node_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\",\n  \"version\": 2\n}"
+            },
+            "url": "{{baseUrl}}/tasks/{{task_id}}/status",
+            "description": "status: pending | in_progress | completed | failed. version must match current task version."
+          }
+        },
+        {
+          "name": "Reassign Task (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_node_id\": \"node-2\"\n}"
+            },
+            "url": "{{baseUrl}}/tasks/{{task_id}}/reassign",
+            "description": "Reassign task to another node. Requires admin JWT."
+          }
+        }
+      ]
+    }
+  ]
+}

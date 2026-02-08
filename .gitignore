@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+main-server/node_modules/
+worker/node_modules/
+
+# Env: ignore actual secrets; only commit .env.example and .env.*.example
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build / output
+dist/
+build/
+coverage/
+.nyc_output/

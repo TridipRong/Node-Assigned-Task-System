@@ -5,32 +5,8 @@ A secure task processing system where only the explicitly assigned worker node c
 ---
 
 ## Architecture Overview
+<img width="816" height="783" alt="Screenshot 2026-02-08 123706" src="https://github.com/user-attachments/assets/770a0f44-454e-4f08-9bfc-ccc5fe42bbff" />
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           MAIN SERVER                                    │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐ │
-│  │ Auth APIs   │  │ Task APIs   │  │ Cron        │  │ PostgreSQL      │ │
-│  │ node/login  │  │ create      │  │ (every min) │  │ tasks, nodes    │ │
-│  │ admin/login │  │ assigned    │  │ timeout     │  │                 │ │
-│  └──────┬──────┘  │ status      │  │ detection   │  └────────┬────────┘ │
-│         │         │ reassign    │  └──────┬──────┘           │          │
-│         │         └──────┬──────┘         │                  │          │
-│         │                │                └──────────────────┘          │
-│         └────────────────┴─────────────────────────────────────────────┤
-│                              Express + Routes → Handlers → Services      │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                      │ HTTPS + JWT
-         ┌────────────────────────────┼────────────────────────────┐
-         │                            │                            │
-         ▼                            ▼                            ▼
-┌─────────────────┐          ┌─────────────────┐          ┌─────────────────┐
-│  WORKER NODE A  │          │  WORKER NODE B  │          │  ... more      │
-│  NODE_ID=nodeA  │          │  NODE_ID=nodeB  │          │  nodes         │
-│  Poll → Execute │          │  Poll → Execute │          │                │
-│  PATCH status   │          │  PATCH status   │          │                │
-└─────────────────┘          └─────────────────┘          └─────────────────┘
-```
 
 - **Main Server:** REST API, JWT auth (node + admin), task CRUD, cron for timed-out tasks. Only the node with `assigned_node_id` can fetch/update that task.
 - **Workers:** One process per node. Login with `node_id` + `node_secret`, poll GET /tasks/assigned, run handler by `task_type`, PATCH status (completed/failed).

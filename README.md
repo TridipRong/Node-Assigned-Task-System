@@ -9,7 +9,7 @@ A secure task processing system where only the explicitly assigned worker node c
 
 
 - **Main Server:** REST API, JWT auth (node + admin), task CRUD, cron for timed-out tasks. Only the node with `assigned_node_id` can fetch/update that task.
-- **Workers:** One process per node. Login with `node_id` + `node_secret`, poll GET /tasks/assigned, run handler by `task_type`, PATCH status (completed/failed).
+- **Workers:** One process per node. Login with `node_id` + `node_secret`, poll GET /tasks/assigned, run handler by `task_type`, PATCH status (completed/failed). Worker nodes do not connect directly to the database; all task coordination is handled by the main server.
 - **Security:** Server verifies requesting node ID = task’s `assigned_node_id`; no cross-node access.
 - **Failover:** Tasks stuck `in_progress` past `timeout_at` are reset to `pending` by cron; admin can reassign via PATCH reassign.
 
@@ -26,7 +26,7 @@ Base URL: `http://localhost:8080` (or your `PORT`).
 | POST | `/auth/node/login` | — | `{ "node_id": "string", "node_secret": "string" }` | `{ "token": "JWT" }` |
 | POST | `/auth/admin/login` | — | `{ "username": "string", "password": "string" }` | `{ "token": "JWT" }` |
 
-Use token in header: `Authorization: Bearer <token>`.
+Use token in header: `Authorization: Bearer <token>`. Admin authentication is simplified for this assignment scope (env-based credentials: ADMIN_USERNAME, ADMIN_PASSWORD).
 
 ### Tasks
 
@@ -61,7 +61,7 @@ Use token in header: `Authorization: Bearer <token>`.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| node_id | UUID PRIMARY KEY | |
+| node_id | TEXT PRIMARY KEY | Node IDs are logical identifiers (e.g. node-A, nodeB), not UUIDs. |
 | node_secret | VARCHAR / TEXT NOT NULL | Secret for node login (never exposed in API) |
 | is_active | BOOLEAN DEFAULT true | If false, node cannot login |
 | created_at | TIMESTAMPTZ | |
@@ -113,6 +113,9 @@ INSERT INTO nodes (node_id, node_secret) VALUES
   ('nodeA', 'secret-for-node-a'),
   ('nodeB', 'secret-for-node-b');
 ```
+
+If you previously created `nodes` with `node_id` as UUID, change it to TEXT:  
+`ALTER TABLE nodes ALTER COLUMN node_id TYPE TEXT;`
 
 ---
 
@@ -233,4 +236,5 @@ Only the worker whose `NODE_ID` matches `assigned_node_id` will receive and exec
 - **Idempotency:** Task updates use `version`; duplicate PATCH with same version may return 409 (no double commit).
 - **No status regression:** Workers only set `completed` or `failed` after execution.
 - **Node isolation:** Server enforces `assigned_node_id` in queries; only that node’s JWT can fetch/update the task.
+- **Admin auth:** Simplified for assignment scope (env-based ADMIN_USERNAME / ADMIN_PASSWORD).
 - **Timeout:** Cron releases stuck tasks so they can be picked again or reassigned by admin.
